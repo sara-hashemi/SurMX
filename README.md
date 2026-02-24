@@ -18,7 +18,7 @@ Each patient is modeled as a **bag of tumor instances**, enabling biologically g
 
 # Step 0 — Download and Prepare MAMA-MIA
 
-## 0.1 Download Dataset
+## Download Dataset
 
 Download the MAMA-MIA dataset from the official source (insert link here).
 
@@ -61,12 +61,6 @@ conda activate nnunetv2
 ```
 
 ## 1.2 Install nnUNet v2
-
-```bash
-pip install nnunetv2
-```
-
-Or from source:
 
 ```bash
 git clone https://github.com/MIC-DKFZ/nnUNet.git
