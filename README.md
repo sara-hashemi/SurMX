@@ -222,39 +222,17 @@ deep_tumor_1 ... deep_tumor_K
 ### Overall Survival
 
 ```bash
-python survmx_single_head_death.py
+python survmx_death.py
 ```
 
 ### Recurrence-Free Survival
 
 ```bash
-python survmx_single_head_recurrence.py
+python survmx_recurrence.py
 ```
-
 ---
 
-# 3. MIL Architecture
-
-Each patient is modeled as:
-
-```
-Patient^z = [Tumor_1^z, Tumor_2^z, ..., Tumor_k^z]
-```
-
-Model components:
-
-- Residual Tumor Encoder  
-- Multi-Head MIL Attention  
-- Global Encoder  
-- Cross-Attention Fusion  
-- Mixture-of-Experts  
-- Cox Proportional Hazards Head  
-
-Separate models are trained for OS and RFS.
-
----
-
-# 4. Outputs
+# 3. Outputs
 
 During training:
 - Epoch-wise loss
@@ -268,7 +246,7 @@ Final evaluation:
 
 ---
 
-# 5. Requirements
+# 4. Requirements
 
 ```bash
 pip install torch torchvision timm
@@ -280,23 +258,12 @@ GPU recommended for segmentation and feature extraction.
 
 ---
 
-# 6. Reproducibility
-
-- Deterministic seed control
-- Mask-safe interpolation
-- Augmentation manifest logging
-- Feature extraction resume capability
-- Patient-level independent splits
-- Modular embedding backbone replacement
-
----
-
-# 7. Citation
+# 5. Citation
 
 TBA (MICCAI 2026 submission)
 
 ---
 
-# 8. Contact
+# 6. Contact
 
 For questions regarding implementation or reproduction, please open a GitHub issue.
