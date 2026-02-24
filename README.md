@@ -1,8 +1,6 @@
 # SurvMX: Tumor-Centric Multimodal Survival Prediction
 
-Official implementation of:
-
-**A Multimodal Attention Transformer Framework for Tumor-Centric Survival Prediction**
+Official implementation of **A Multimodal Attention Transformer Framework for Tumor-Centric Survival Prediction**
 
 SurvMX is a tumor-centric multimodal survival modeling framework that integrates 3D multiphase DCE-MRI and structured clinical metadata using a Multiple Instance Learning (MIL) architecture with multi-head attention and Cox Proportional Hazards optimization.
 
