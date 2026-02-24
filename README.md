@@ -170,7 +170,6 @@ With columns including:
 ## Step 4 — Train MIL Survival Model
 
 Run:
-
 ```bash
 python MIL.py
 ```
@@ -180,13 +179,11 @@ python MIL.py
 # MIL Architecture Overview
 
 Each patient is modeled as:
-
 $begin:math:display$
 Patient\^z \= \[Tumor\_1\^z\, Tumor\_2\^z\, \.\.\.\, Tumor\_k\^z\]
 $end:math:display$
 
 ### Model Components
-
 - Residual Tumor Encoder
 - Multi-Head MIL Attention
 - Global Embedding Encoder
@@ -195,21 +192,17 @@ $end:math:display$
 - Cox Proportional Hazards Head
 
 Separate models are trained for:
-
 - Overall Survival (OS)
 - Recurrence-Free Survival (RFS)
 
 ---
 
 # Outputs
-
 During training:
-
 - Epoch-wise loss
 - Validation C-index
 
 Final evaluation:
-
 - Death C-index
 - Recurrence C-index
 - Kaplan–Meier survival curves
@@ -218,7 +211,6 @@ Final evaluation:
 ---
 
 # Reproducibility
-
 - Patient-level independent train/test splits enforced
 - Deterministic seed control supported
 - Compatible with deep or radiomic features
@@ -227,7 +219,6 @@ Final evaluation:
 ---
 
 # Example Results
-
 | Model | OS C-index | RFS C-index |
 |--------|------------|------------|
 | SurvMx (Joint) | 0.835 | 0.752 |
@@ -238,7 +229,6 @@ Final evaluation:
 ---
 
 # Notes
-
 - Designed for tumor-centric multimodal survival modeling
 - Easily extendable to subtype classification
 - Can be adapted to other cancer datasets
@@ -249,8 +239,7 @@ Final evaluation:
 
 ---
 
-# 📬 Contact
-
+# Contact
 For questions regarding implementation or reproduction, please open an issue.
 
 ---
