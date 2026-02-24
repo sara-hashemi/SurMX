@@ -12,70 +12,168 @@ SurvMx is a tumor-centric multimodal survival modeling framework that integrates
 
 Accurate survival prediction in breast cancer requires modeling tumor-level biological heterogeneity rather than relying solely on whole-organ representations.
 
-SurvMx implements:
-
-- Tumor-centric volumetric extraction
-- Spatially aligned 3D augmentation
-- Deep (ViT) feature encoding
-- Multi-head attention MIL aggregation
-- Multimodal fusion with structured clinical metadata
-- Cox Proportional Hazards survival optimization
-- Overall Survival (OS) and Recurrence-Free Survival (RFS) modeling
+In SurMX, we propose a tumor-centric multimodal survival architecture that integrates instance-level MRI representations, global anatomical context, and structured clinical metadata within a unified Cox-based optimization framework. Tumor volumes are extracted from 3D segmentations and subjected to spatially consistent geometric rotations and intensity perturbations to enhance robustness and mitigate class imbalance. Each tumor volume is encoded using a deep feature extractor followed by a residual tumor encoder, producing instance-level embeddings. Survival prediction is formulated as a Multiple Instance Learning (MIL) problem in which each patient is represented as a variable-sized bag of tumor embeddings. A multi-head self-attention aggregation module learns adaptive instance weights to model intra-patient tumor heterogeneity. In parallel, a residual global encoder processes scan-level features to preserve anatomical context beyond localized lesions. Phase-specific embeddings are learned independently for each DCE-MRI phase to capture temporal contrast-enhancement dynamics. The aggregated tumor representation is fused with the global embedding through cross-attention and further integrated with learnable entity embeddings of categorical clinical variables. The resulting patient-level representation is refined through a Mixture-of-Experts module and optimized under a Cox Proportional Hazards objective in task-specific models for Overall Survival and Recurrence-Free Survival.
 
 Each patient is modeled as a **bag of tumor instances**, enabling biologically grounded risk aggregation.
 
 ---
 
-# Repository Structure
+# Step 0 — Download and Prepare MAMA-MIA
+
+## 0.1 Download Dataset
+
+Download the MAMA-MIA dataset from the official source (insert link here).
+
+After download, structure the dataset as follows:
 
 ```
-postProcessing.py        # Tumor VOI extraction
-augmentation.py          # 3D augmentation of cropped tumors
-MIL.py                   # Tumor-centric MIL survival model
+MAMA-MIA/
+└── raw/
+    └── Dataset001_MAMA_MIA/
+        ├── imagesTr/
+        ├── labelsTr/
+        ├── imagesTs/
+        ├── labelsTs/
 ```
+
+Each patient should contain **3 DCE-MRI phases** with some patients containing the last two DCE-MRI phases:
+
+```
+patient001_0000.nii.gz
+patient001_0001.nii.gz
+patient001_0002.nii.gz
+```
+
+Where:
+
+- `_0000` = Pre-contrast
+- `_0001–0004` = Post-contrast phases
 
 ---
 
-# Installation
+# Step 1 — Install nnUNet v2
 
-## 1-Create Environment
+We use **nnUNet v2** for 3D tumor segmentation.
+
+## 1.1 Create Environment
 
 ```bash
-conda create -n survmx python=3.9
-conda activate survmx
+conda create -n nnunetv2 python=3.9
+conda activate nnunetv2
 ```
 
-## 2-Install Dependencies
+## 1.2 Install nnUNet v2
 
 ```bash
-pip install torch torchvision
-pip install numpy pandas matplotlib
-pip install SimpleITK
-pip install scikit-survival
+pip install nnunetv2
 ```
 
-(Optional: radiomics, timm, etc. depending on your embedding pipeline)
+Or from source:
+
+```bash
+git clone https://github.com/MIC-DKFZ/nnUNet.git
+cd nnUNet
+pip install -e .
+```
 
 ---
 
-# Data Preparation
+## 1.3 Set Environment Variables
 
-## Required Inputs
-
-You need:
-
-- 3D MRI/CT images (`.nii.gz`)
-- Corresponding segmentation masks (`.nii.gz`)
-- Clinical survival metadata (CSV)
-- Tumor/global embeddings (deep or radiomic)
+```bash
+export nnUNet_raw="/path/to/MAMA-MIA/raw"
+export nnUNet_preprocessed="/path/to/MAMA-MIA/preprocessed"
+export nnUNet_results="/path/to/MAMA-MIA/nnunet_results"
+```
 
 ---
 
-# End-to-End Pipeline
+# Step 2 — Prepare 4-Phase Dataset for nnUNet
+
+Ensure dataset follows nnUNet naming conventions:
+
+```
+Dataset001_MAMA_MIA/
+├── imagesTr/
+│   ├── patient001_0000.nii.gz
+│   ├── patient001_0001.nii.gz
+│   ├── patient001_0002.nii.gz
+│   ├── patient001_0003.nii.gz
+│   ...
+├── labelsTr/
+│   ├── patient001.nii.gz
+```
+
+Each patient must have 4 input channels.
+
+Your `dataset.json` must specify:
+
+```json
+"channel_names": {
+    "0": "DCE_phase0",
+    "1": "DCE_phase1",
+    "2": "DCE_phase2",
+    "3": "DCE_phase3"
+}
+```
 
 ---
 
-## Step 1 — Extract Tumor VOIs
+# Step 3 — Train nnUNet (3D Full Resolution)
+
+## 3.1 Preprocess
+
+```bash
+nnUNetv2_plan_and_preprocess -d 1 --verify_dataset_integrity
+```
+
+## 3.2 Train Model (Fold 0)
+
+```bash
+nnUNetv2_train 1 3d_fullres 0
+```
+
+To train all folds:
+
+```bash
+nnUNetv2_train 1 3d_fullres all
+```
+
+---
+
+# Step 4 — Generate Tumor Segmentations
+
+Run inference:
+
+```bash
+nnUNetv2_predict \
+    -i /path/to/imagesTs \
+    -o /path/to/nnUNet_predictions \
+    -d 1 \
+    -c 3d_fullres \
+    -f 0 \
+    -chk checkpoint_best.pth
+```
+
+Predicted masks will be saved as:
+
+```
+nnUNet_predictions/
+├── patient001.nii.gz
+├── patient002.nii.gz
+...
+```
+
+---
+
+# Step 5 — Tumor VOI Extraction
+
+Update paths inside `postProcessing.py`:
+
+```python
+SOURCE_IMAGE_DIR = "/path/to/imagesTr"
+SOURCE_MASK_DIR  = "/path/to/nnUNet_predictions"
+```
 
 Run:
 
@@ -83,83 +181,63 @@ Run:
 python postProcessing.py
 ```
 
-### What It Does
+This:
 
-- Loads full 3D scan
-- Loads segmentation mask
 - Identifies connected tumor components
 - Computes 3D bounding boxes
-- Crops tumor volumes
+- Extracts tumor volumes (VOIs)
 - Saves each tumor independently
 
-### Output
+Output:
 
 ```
 cropped_voi_images/
 ├── patient001_tumor1_img.nii.gz
 ├── patient001_tumor1_mask.nii.gz
-├── patient001_tumor2_img.nii.gz
-├── patient001_tumor2_mask.nii.gz
 ...
 ```
 
-Each tumor is saved separately for multi-instance modeling.
-
 ---
 
-## Step 2 — Generate 3D Augmentations
-
-Run:
+# Step 6 — Tumor-Level Augmentation
 
 ```bash
 python augmentation.py
 ```
 
-### Augmentations Applied
+Applies:
 
-**Geometric**
+**Geometric Transformations**
 - 45°, 90°, 135°, 180°, 225°, 270°, 315° rotations
 
-**Intensity**
+**Intensity Transformations**
 - Brightness shift
 - Contrast scaling
 - Gaussian noise injection
 
-All transformations are applied consistently to both image and mask to preserve spatial alignment.
-
-### Output
-
-```
-augmented_cropped_voi_images/
-├── patient001_tumor1_rot45_img.nii.gz
-├── patient001_tumor1_rot45_mask.nii.gz
-├── patient001_tumor1_bright_img.nii.gz
-├── patient001_tumor1_bright_mask.nii.gz
-...
-```
+All transformations preserve spatial alignment.
 
 ---
 
-## Step 3 — Feature Extraction
+# Step 7 — Feature Extraction
 
-You may use:
+Use:
 
-- Pretrained Vision Transformer (ViT)
+- Pretrained Vision Transformer (ViT), or
 - Radiomic feature extraction
-- Any volumetric encoder
 
-The resulting CSV should contain:
+Generate:
 
 ```
 features_merged_survival_only.csv
 ```
 
-With columns including:
+Required columns:
 
 - tumor_id
 - patient_id
-- deep_tumor (embedding vector)
-- deep_global (optional global embedding)
+- deep_tumor
+- deep_global (optional)
 - days_to_death_or_last_followup
 - death_event
 - days_to_recurrence_or_last_followup
@@ -167,71 +245,37 @@ With columns including:
 
 ---
 
-## Step 4 — Train MIL Survival Model
+# Step 8 — Train MIL Survival Model
 
-Run:
 ```bash
 python MIL.py
 ```
 
----
+The model:
 
-# MIL Architecture Overview
-
-Each patient is modeled as:
-$begin:math:display$
-Patient\^z \= \[Tumor\_1\^z\, Tumor\_2\^z\, \.\.\.\, Tumor\_k\^z\]
-$end:math:display$
-
-### Model Components
-- Residual Tumor Encoder
-- Multi-Head MIL Attention
-- Global Embedding Encoder
-- Cross-Attention Fusion
-- Mixture-of-Experts (MoE)
-- Cox Proportional Hazards Head
-
-Separate models are trained for:
-- Overall Survival (OS)
-- Recurrence-Free Survival (RFS)
-
----
-
-# Outputs
-During training:
-- Epoch-wise loss
-- Validation C-index
-
-Final evaluation:
-- Death C-index
-- Recurrence C-index
-- Kaplan–Meier survival curves
-- Trained model weights
-
----
-
-# Reproducibility
-- Patient-level independent train/test splits enforced
-- Deterministic seed control supported
-- Compatible with deep or radiomic features
-- Modular design enables replacement of embedding backbone
-
----
-
-# Example Results
-| Model | OS C-index | RFS C-index |
-|--------|------------|------------|
-| SurvMx (Joint) | 0.835 | 0.752 |
-| SurvMx (Single-task) | 0.858 | 0.641 |
-
-(Results depend on dataset and preprocessing configuration.)
+- Groups tumors into patient-level bags
+- Applies multi-head attention aggregation
+- Fuses tumor + global + clinical embeddings
+- Optimizes Cox survival objective
+- Trains separate models for OS and RFS
 
 ---
 
 # Notes
-- Designed for tumor-centric multimodal survival modeling
-- Easily extendable to subtype classification
-- Can be adapted to other cancer datasets
+
+- Ensure consistent DCE phase ordering.
+- Patient-level splits must remain consistent.
+- nnUNet handles resampling and normalization internally.
+- GPU recommended for segmentation training.
+
+---
+
+# Outputs
+
+- Death C-index
+- Recurrence C-index
+- Kaplan–Meier survival curves
+- Saved model checkpoints
 
 ---
 
