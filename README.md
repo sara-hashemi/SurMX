@@ -1,4 +1,4 @@
-# SurvMx: Tumor-Centric Multimodal Survival Prediction
+# SurvMX: Tumor-Centric Multimodal Survival Prediction
 
 Official implementation of:
 
