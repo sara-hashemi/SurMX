@@ -14,13 +14,13 @@ Accurate survival prediction in breast cancer requires modeling tumor-level biol
 
 SurvMx implements:
 
-- 🧠 Tumor-centric volumetric extraction
-- 🔄 Spatially aligned 3D augmentation
-- 🔬 Deep (ViT) or radiomic feature encoding
-- 🎯 Multi-head attention MIL aggregation
-- 🧩 Multimodal fusion with structured clinical metadata
-- 📊 Cox Proportional Hazards survival optimization
-- ⚖ Separate models for Overall Survival (OS) and Recurrence-Free Survival (RFS)
+- Tumor-centric volumetric extraction
+- Spatially aligned 3D augmentation
+- Deep (ViT) feature encoding
+- Multi-head attention MIL aggregation
+- Multimodal fusion with structured clinical metadata
+- Cox Proportional Hazards survival optimization
+- Overall Survival (OS) and Recurrence-Free Survival (RFS) modeling
 
 Each patient is modeled as a **bag of tumor instances**, enabling biologically grounded risk aggregation.
 
@@ -36,7 +36,7 @@ MIL.py                   # Tumor-centric MIL survival model
 
 ---
 
-# ⚙️ Installation
+# Installation
 
 ## 1-Create Environment
 
@@ -58,7 +58,7 @@ pip install scikit-survival
 
 ---
 
-# 📂 Data Preparation
+# Data Preparation
 
 ## Required Inputs
 
@@ -71,7 +71,7 @@ You need:
 
 ---
 
-# 🚀 End-to-End Pipeline
+# End-to-End Pipeline
 
 ---
 
